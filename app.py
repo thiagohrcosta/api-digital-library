@@ -82,6 +82,16 @@ def authors():
 
 # AUTHOR
 @app.route('/authors/<int:id_author>', methods=['GET'])
+def author(id_author):
+  author = Author.query.get(id_author)
+
+  if author:
+    return jsonify({
+      'name': author.name,
+      'photo': author.photo
+    })
+  
+  return jsonify({'message': 'Author not found'}), 400
 
 # CREATE AUTHOR
 @app.route('/authors', methods=['POST'])
@@ -117,15 +127,15 @@ def edit_author(id_author):
   data = request.json
   author = Author.query.get(id_author)
 
-  if not author:
-    return jsonify({'message': 'Author not found.'})
+  if author:
+    author.name = data.get('name')
+    author.photo = data.get('photo')
+    db.session.commit()
+
+    return jsonify({'message': f"{author.name} successfully updated."})
+
+  return jsonify({'message': 'Author not found.'})
   
-  author.name = data.get('name')
-  author.photo = data.get('photo')
-  db.session.commit()
-
-  return jsonify({'message': f"{author.name} successfully updated."})
-
 # DELETE AUTHOR
 @app.route('/authors/<int:id_author>', methods=['DELETE'])
 @login_required
@@ -142,6 +152,49 @@ def delete_author(id_author):
   db.session.commit()
 
   return jsonify({"message": "Author successfully deleted."})
+
+# BOOK
+
+# SHOW BOOK
+@app.route('/books/<int:id_book>', methods=['GET'])
+def book(id_book):
+  book = Book.query.get(id_book)
+
+  author = Author.query.filter_by(id=book.author_id).first()
+  author_name = author.name
+
+  if book:
+    author = Author.query.filter_by(id=book.author_id).first()
+    author_name = author.name if author else "Unknown Author"
+
+    return jsonify({
+      'title': book.title,
+      'box_cover': book.box_cover,
+      'author': author_name
+    })
+
+  return jsonify({'message': "Book not found"}), 404
+
+# CREATE BOOK
+@app.route('/books', methods=['POST'])
+@login_required
+def create_book():
+  if current_user.role != 'admin':
+    return jsonify({'message': 'Action not allowed'}), 403
+  
+  data = request.json
+  title = data.get('title')
+  box_cover = data.get('box_cover')
+  author_id = data.get('author_id')
+
+  if title and box_cover and author_id:
+    book = Book(title=title, box_cover=box_cover, author_id=author_id)
+    db.session.add(book)
+    db.session.commit()
+
+    return jsonify({'message': 'Book successfully created.'})
+  
+  return jsonify({'message': 'Invalid data'}), 400
 
 if __name__ == '__main__':
   app.run(debug=True)
