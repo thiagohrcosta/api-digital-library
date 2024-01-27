@@ -28,7 +28,6 @@ def create_user():
   password = data.get('password')
   email = data.get('email')
 
-
   if username and password: 
     hashed_password = bcrypt.hashpw(str.encode(password), bcrypt.gensalt())
     user = User(username=username, email=email, password=hashed_password, role='user')
@@ -155,6 +154,23 @@ def delete_author(id_author):
 
 # BOOK
 
+# BOOK INDEX
+@app.route('/books', methods=['GET'])
+def books():
+  books = Book.query.all()
+
+  if len(books) > 0:
+    books_data = [{
+      'id': book.id,
+      'title': book.title,
+      'box_cover': book.box_cover,
+      'author': Author.query.filter_by(id=book.author_id).first().name
+    } for book in books]
+
+    return jsonify(books_data)
+  
+  return jsonify({'message': 'No book found on database.'})
+
 # SHOW BOOK
 @app.route('/books/<int:id_book>', methods=['GET'])
 def book(id_book):
@@ -168,6 +184,7 @@ def book(id_book):
     author_name = author.name if author else "Unknown Author"
 
     return jsonify({
+      'id': book.id,
       'title': book.title,
       'box_cover': book.box_cover,
       'author': author_name
@@ -187,6 +204,10 @@ def create_book():
   box_cover = data.get('box_cover')
   author_id = data.get('author_id')
 
+  existing_book = Book.query.filter_by(title=title).first()
+  if existing_book:
+      return jsonify({'message': 'A book with the same title already exists'}), 400
+
   if title and box_cover and author_id:
     book = Book(title=title, box_cover=box_cover, author_id=author_id)
     db.session.add(book)
@@ -195,6 +216,43 @@ def create_book():
     return jsonify({'message': 'Book successfully created.'})
   
   return jsonify({'message': 'Invalid data'}), 400
+
+# UPDATE BOOK
+@app.route('/books/<int:id_book>', methods=['PATCH'])
+@login_required
+def update_book(id_book):
+  if current_user.role != 'admin':
+    return jsonify({'message': 'Action not allowed'}), 403
+
+  data = request.json
+  book = Book.query.get(id_book)
+
+  if book:
+    book.title = data.get('title')
+    book.box_cover = data.get('box_cover')
+    book.author_id = data.get('author_id')
+    db.session.commit()
+
+    return jsonify({'message': f"{book.title} successfully updated."})
+
+  return jsonify({'message': 'Author not found.'})
+
+# DELETE BOOK
+@app.route('/books/<int:id_book>', methods=['DELETE'])
+@login_required
+def delete_book(id_book):
+  if current_user.role != 'admin':
+    return jsonify({'message': 'Action not allowed'}), 403
+  
+  book = Book.query.get(id_book)
+
+  if book:
+    db.session.delete(book)
+    db.session.commit()
+
+    return jsonify({'message': 'Book successfully deleted.'})
+
+  return jsonify({'message': 'Book not found'}), 400
 
 if __name__ == '__main__':
   app.run(debug=True)
