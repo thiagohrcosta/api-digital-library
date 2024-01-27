@@ -254,5 +254,40 @@ def delete_book(id_book):
 
   return jsonify({'message': 'Book not found'}), 400
 
+# BOOKSHELF
+@app.route('/add_book/<int:id_book>', methods=['POST'])
+def add_to_bookshelf(id_book):
+  user = current_user
+
+  book = Book.query.get(id_book)
+
+  if not book:
+    return jsonify({'message': 'Book not found'}), 404
+
+  if book in user.books:
+    return jsonify({'message': 'Book already in your collection'}), 400
+
+  user.books.append(book)
+  db.session.commit()
+
+  return jsonify({'message': 'Book successfully added to your collection'})
+
+@app.route('/profile/<int:id_user>', methods=['GET'])
+def profile(id_user):
+  user = User.query.get(id_user)
+
+  if user:
+    user_data = {
+        'id': user.id,
+        'username': user.username,
+        'email': user.email,
+        'books': [{'id': book.id, 'title': book.title, 'box_cover': book.box_cover} for book in user.books]
+    }
+
+    return jsonify(user_data)
+  
+  return jsonify({'message': 'User not found'}), 404
+
+
 if __name__ == '__main__':
   app.run(debug=True)
