@@ -7,10 +7,12 @@ from models.author import Author
 from database import db
 from flask_login import LoginManager, login_user, current_user, logout_user, login_required
 from datetime import datetime
+from flask_cors import CORS
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://admin:admin123@localhost:3306/api-digital-library'
+CORS(app)
 
 login_manager = LoginManager()
 db.init_app(app)
