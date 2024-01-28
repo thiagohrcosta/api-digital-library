@@ -85,11 +85,20 @@ def authors():
 @app.route('/authors/<int:id_author>', methods=['GET'])
 def author(id_author):
   author = Author.query.get(id_author)
+  books = Book.query.filter_by(author_id=id_author)
+
+  books_by_author_data = [{
+      'id': book.id,
+      'title': book.title,
+      'box_cover': book.box_cover,
+    } for book in books]
+  
 
   if author:
     return jsonify({
       'name': author.name,
-      'photo': author.photo
+      'photo': author.photo,
+      'books': books_by_author_data
     })
   
   return jsonify({'message': 'Author not found'}), 400
