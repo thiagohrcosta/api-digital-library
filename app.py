@@ -63,6 +63,19 @@ def logout():
   logout_user()
   return jsonify({'message': 'User logout successfully'})
 
+# Profile / me
+@app.route('/profile/me', methods=['GET'])
+@login_required
+def me():
+  user = current_user
+
+  if not user:
+    return jsonify({'message': 'User not found'})
+
+  return jsonify({
+    'username': user.username
+  })
+
 # AUTHOR
 
 # AUTHORS
@@ -282,6 +295,25 @@ def add_to_bookshelf(id_book):
   db.session.commit()
 
   return jsonify({'message': 'Book successfully added to your collection'})
+
+# SHOW Bookshelf
+@app.route("/bookshelf", methods=['GET'])
+def show_bookshelf():
+  user = current_user
+
+  if not user:
+    return jsonify({'message': 'User not found.'})
+
+  user_books = User.query.get(user.id).books
+
+  bookshelf_books = [{
+    'id': user_book.id,
+    'title': user_book.title,
+    'box_cover': user_book.box_cover,
+    'author': Author.query.filter_by(id=user_book.author_id).first().name
+  } for user_book in user_books]
+
+  return jsonify(bookshelf_books)
 
 @app.route('/profile/<int:id_user>', methods=['GET'])
 def profile(id_user):
